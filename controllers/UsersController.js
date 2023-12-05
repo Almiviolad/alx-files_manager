@@ -1,0 +1,32 @@
+import dbClient from '../utils/db';
+
+const crypto = require('crypto');
+
+async function postNew(data) {
+  if (!data.email) {
+    throw new Error('Missing email');
+  }
+  if (!data.password) {
+    throw new Error('Missing password');
+  }
+
+  const { db } = dbClient;
+  const collection = db.collection('users');
+  const existingUser = await collection.findOne({ email: data.email });
+  if (existingUser) {
+    throw new Error('Already exist');
+  }
+
+  const sha1sum = crypto.createHash('sha1');
+  sha1sum.update(data.password);
+  const password = sha1sum.digest('hex');
+  const user = {
+    email: data.email,
+    password,
+  };
+
+  const insertResult = await collection.insertOne(user);
+  return { id: insertResult.insertedId, email: user.email };
+}
+
+module.exports = { postNew };
